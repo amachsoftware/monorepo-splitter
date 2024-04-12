@@ -5,6 +5,7 @@ ORG="${ORG:-}"
 DONOR="${DONOR:-}"
 MODULE="${MODULE:-}"
 REPO="${REPO:-}"
+BRANCH="${BRANCH:-main}"
 WORKDIR="${WORKDIR:-/tmp/terraform-extract}"
 DRY_RUN="${DRY_RUN:-0}"
 HELP_FLAG="${HELP_FLAG:-0}"
@@ -60,36 +61,37 @@ function prepare_workdir() {
 
 function prepare_donor() {
     # Clone the donor repository and prepare the module
+    cd $WORKDIR || exit 1
     echo "Cloning donor repository: ${ORG}/${DONOR}"
     echo "this would be the clone"
     git clone --no-tags --single-branch --branch=main https://github.com/$ORG/$DONOR.git
-    pushd $DONOR || exit 1
+    cd $DONOR || exit 1
     echo "Extracting module: $MODULE"
     git subtree split -P $MODULE -b split/$MODULE
     # Fix up the history so it conforms to conventional commit standards
     echo "Fixing up commit messages"
     git filter-branch -f --msg-filter 'sed "s/^/refactor: /g"' split/$MODULE
-    popd || exit 1
+    cd $WORKDIR || exit 1
 }
 
 function prepare_recipient() {
     # Clone the recipient repository and add the donor repository as a remote
-    pushd $WORKDIR || exit 1
+    cd $WORKDIR || exit 1
     echo "Cloning target repository: $ORG/$REPO"
     git clone https://github.com/$ORG/$REPO.git
-    pushd "$REPO" || exit 1
+    cd $REPO || exit 1
     echo "Adding donor repository as remote"
     git remote add donor $WORKDIR/$DONOR
     echo "Fetching module from donor repository"
     git pull --rebase -X theirs donor split/$MODULE
-    popd
+    cd $WORKDIR || exit 1
 }
 
 function push_new_module() {
     echo "Pushing changes to target repository"
-    pushd $WORKDIR || exit 1
-    git push --force --set-upstream origin main
-    popd || exit 1
+    cd $WORKDIR/$REPO || exit 1
+    git push --force --set-upstream origin $BRANCH
+    cd $WORKDIR || exit 1
 }
 
 if [[ $HELP_FLAG -eq 1 ]]; then
