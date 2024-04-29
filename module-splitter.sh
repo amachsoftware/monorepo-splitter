@@ -67,13 +67,13 @@ function prepare_donor() {
     git clone --no-tags --single-branch --branch=main https://github.com/$ORG/$DONOR.git
     cd $DONOR || exit 1
     echo "Extracting module: $MODULE"
+    git subtree split -P $MODULE -b split/$MODULE
     # Check if CHANGELOG.md exists and rename it to OLD_CHANGELOG.md
     if [ -f "CHANGELOG.md" ]; then
         echo "Renaming CHANGELOG.md to OLD_CHANGELOG.md"
         mv CHANGELOG.md OLD_CHANGELOG.md
         git commit -a -m "Rename CHANGELOG.md to OLD_CHANGELOG.md"
     fi
-    git subtree split -P $MODULE -b split/$MODULE
     # Fix up the history so it conforms to conventional commit standards
     echo "Fixing up commit messages"
     git filter-branch -f --msg-filter 'sed "s/^/refactor: /g"' split/$MODULE
