@@ -70,6 +70,7 @@ function prepare_donor() {
     git subtree split -P $MODULE -b split/$MODULE
     # Check if CHANGELOG.md exists and rename it to OLD_CHANGELOG.md
     if [ -f "CHANGELOG.md" ]; then
+        git switch split/$MODULE
         echo "Renaming CHANGELOG.md to OLD_CHANGELOG.md"
         mv CHANGELOG.md OLD_CHANGELOG.md
         git commit -a -m "Rename CHANGELOG.md to OLD_CHANGELOG.md"
