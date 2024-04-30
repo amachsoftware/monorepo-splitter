@@ -69,12 +69,14 @@ function prepare_donor() {
     echo "Extracting module: $MODULE"
     git subtree split -P $MODULE -b split/$MODULE
     # Check if CHANGELOG.md exists and rename it to OLD_CHANGELOG.md
+    git switch split/$MODULE
     if [ -f "CHANGELOG.md" ]; then
         git switch split/$MODULE
         echo "Renaming CHANGELOG.md to OLD_CHANGELOG.md"
         mv CHANGELOG.md OLD_CHANGELOG.md
         git commit -a -m "Rename CHANGELOG.md to OLD_CHANGELOG.md"
     fi
+    git switch main
     # Fix up the history so it conforms to conventional commit standards
     echo "Fixing up commit messages"
     git filter-branch -f --msg-filter 'sed "s/^/refactor: /g"' split/$MODULE
