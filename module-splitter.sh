@@ -7,12 +7,13 @@ MODULE="${MODULE:-}"
 REPO="${REPO:-}"
 BRANCH="${BRANCH:-main}"
 WORKDIR="${WORKDIR:-/tmp/terraform-extract}"
+SINCE_DATE="${SINCE_DATE:-notset}"
 DRY_RUN="${DRY_RUN:-0}"
 HELP_FLAG="${HELP_FLAG:-0}"
 VALID_ARGUMENTS=0
 
 usage() {
-    echo "Usage: $0 [-n] [-o ORG] [-d DONOR] [-m MODULE] [-r REPO] [-w WORKDIR] [-h]"
+    echo "Usage: $0 [-n] [-o ORG] [-d DONOR] [-m MODULE] [-r REPO] [-w WORKDIR] [-s SINCE_DATE] [-h]"
     echo ""
     echo "Options:"
     echo "  -n  Perform a dry run of the extraction process without pushing changes to the target repository"
@@ -21,12 +22,13 @@ usage() {
     echo "  -m  The name of the module to extract, relative to the root of the donor repository eg: github dir/module"
     echo "  -r  The name of the recipient repository to add the module to"
     echo "  -w  The working directory to use for extracting the module"
+    echo "  -s  Clone only the commits since the specified data (DD-MM-YYY) eg: 24-01-2025 represents January 24th 2025 00:00:00"
     echo "  -h  Display this help message"
     exit 2
 }
 
 # Parse command line options
-while getopts "no:d:m:r:w:h" opt; do
+while getopts "no:d:m:r:w:s:h" opt; do
     case ${opt} in
         n) DRY_RUN=1 ;;
         o) ORG="${OPTARG}" ;;
@@ -34,6 +36,7 @@ while getopts "no:d:m:r:w:h" opt; do
         m) MODULE="${OPTARG}" ;;
         r) REPO="${OPTARG}" ;;
         w) WORKDIR="${OPTARG}" ;;
+        s) SINCE_DATE="${OPTARG}" ;;
         h) HELP_FLAG=1; usage ;;
         \?) echo "Invalid option: -${OPTARG}" >&2; usage ;;
         :) echo "Option -${OPTARG} requires an argument." >&2; usage ;;
@@ -64,7 +67,15 @@ function prepare_donor() {
     cd $WORKDIR || exit 1
     echo "Cloning donor repository: ${ORG}/${DONOR}"
     echo "this would be the clone"
-    git clone --no-tags --single-branch --branch=main https://github.com/$ORG/$DONOR.git
+    if [[ $SINCE_DATE == "notset" ]]; then
+        echo "(With full commit history)"
+        git clone --no-tags --single-branch --branch=main https://github.com/$ORG/$DONOR.git
+      else
+        echo "(With commit history from ${SINCE_DATE})"
+        # Convert human to epoch (eg. "24-01-2024" to 1524916201) required by git clone --shallow-since
+        SINCE_EPOCH=$(date -jf "%d-%m-%Y" $SINCE_DATE "+%s")
+        git clone --no-tags --single-branch --shallow-since="$SINCE_EPOCH" --branch=main https://github.com/$ORG/$DONOR.git
+    fi
     cd $DONOR || exit 1
     echo "Extracting module: $MODULE"
     git subtree split -P $MODULE -b split/$MODULE
