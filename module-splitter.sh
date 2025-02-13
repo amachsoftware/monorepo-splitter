@@ -71,10 +71,21 @@ function prepare_donor() {
         echo "(With full commit history)"
         git clone --no-tags --single-branch --branch=main https://github.com/$ORG/$DONOR.git
       else
-        echo "(With commit history from ${SINCE_DATE})"
-        # Convert human to epoch (eg. "24-01-2024" to 1524916201) required by git clone --shallow-since
-        SINCE_EPOCH=$(date -jf "%d-%m-%Y" $SINCE_DATE "+%s")
-        git clone --no-tags --single-branch --shallow-since="$SINCE_EPOCH" --branch=main https://github.com/$ORG/$DONOR.git
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            echo "(OS: ${OSTYPE})"
+            echo "(With commit history from ${SINCE_DATE})"
+            # Convert human to epoch (eg. "24-01-2024" to 1524916201) required by git clone --shallow-since
+            SINCE_EPOCH=$(date -jf "%Y-%m-%d" $SINCE_DATE "+%s")
+            git clone --no-tags --single-branch --shallow-since="$SINCE_EPOCH" --branch=main https://github.com/$ORG/$DONOR.git
+        elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            echo "(OS: ${OSTYPE})"
+            echo "(With commit history from ${SINCE_DATE})"
+            SINCE_EPOCH=$(date -d $SINCE_DATE +%s)
+            git clone --no-tags --single-branch --shallow-since="$SINCE_EPOCH" --branch=main https://github.com/$ORG/$DONOR.git
+        else
+            echo "Unsupported OS type: $OSTYPE"
+            exit 1
+        fi
     fi
     cd $DONOR || exit 1
     echo "Extracting module: $MODULE"
