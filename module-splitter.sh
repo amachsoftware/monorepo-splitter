@@ -73,7 +73,7 @@ function prepare_donor() {
       else
         echo "(With commit history from ${SINCE_DATE})"
         # Convert human to epoch (eg. "24-01-2024" to 1524916201) required by git clone --shallow-since
-        SINCE_EPOCH=$(date -jf "%d-%m-%Y" $SINCE_DATE "+%s")
+        SINCE_EPOCH=$(date -d "$SINCE_DATE" "+%s")
         git clone --no-tags --single-branch --shallow-since="$SINCE_EPOCH" --branch=main https://github.com/$ORG/$DONOR.git
     fi
     cd $DONOR || exit 1
